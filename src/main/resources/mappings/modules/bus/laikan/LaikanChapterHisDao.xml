@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.laikan.dao.LaikanChapterHisDao">
+    
+	<sql id="laikanChapterHisColumns">
+		a.id AS "id",
+		a.chapter_id AS "chapterId",
+		a.is_success AS "isSuccess",
+		a.chapter as "chapter",
+		a.book_id as "book_id"
+	</sql>
+	
+	<sql id="laikanChapterHisJoins">
+	</sql>
+	
+    
+	<select id="get" resultType="LaikanChapterHis" >
+		SELECT 
+			<include refid="laikanChapterHisColumns"/>
+		FROM laikan_chapter_his a
+		<include refid="laikanChapterHisJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="LaikanChapterHis" >
+		SELECT 
+			<include refid="laikanChapterHisColumns"/>
+		FROM laikan_chapter_his a
+		<include refid="laikanChapterHisJoins"/>
+		<where>
+			a.book_id is not null
+			<if test="chapterId != null and chapterId != ''">
+				AND a.chapter_id = #{chapterId}
+			</if>
+			<if test="isSuccess != null and isSuccess != ''">
+				AND a.is_success = #{isSuccess}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="LaikanChapterHis" >
+		SELECT 
+			<include refid="laikanChapterHisColumns"/>
+		FROM laikan_chapter_his a
+		<include refid="laikanChapterHisJoins"/>
+		<where>
+			
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO laikan_chapter_his(
+			id,
+			chapter_id,
+			is_success
+			chapter,
+			book_id
+		) VALUES (
+			#{id},
+			#{chapterId},
+			#{isSuccess},
+			#{chapter},
+			#{bookId}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE laikan_chapter_his SET 	
+			chapter_id = #{chapterId},
+			is_success = #{isSuccess},
+			book_id = #{bookId},
+			chapter = #{chapter}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="updateBookIdByChapterId">
+		UPDATE laikan_chapter_his SET 	
+			book_id = #{bookId},
+			chapter = #{chapter}
+		WHERE chapter_id = #{chapterId}
+	</update>
+	
+	<update id="updSuccess">
+		UPDATE laikan_chapter_his SET 	
+			is_success = '1'
+		WHERE chapter_id = #{chapterId} and id = #{userId}
+	</update>
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM laikan_chapter_his
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE laikan_chapter_his SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="LaikanChapterHis" statementType="STATEMENT">
+		select * FROM laikan_chapter_his  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

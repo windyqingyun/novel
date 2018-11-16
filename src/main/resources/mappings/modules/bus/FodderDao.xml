@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.FodderDao">
+    
+	<sql id="fodderColumns">
+		a.id AS "id",
+		a.title AS "title",
+		a.title_image AS "titleImage",
+		a.content AS "content",
+		a.link_url AS "linkUrl",
+		a.book_id AS "bookId",
+		a.chapter AS "chapter",
+		a.office_id AS "office.id",
+		a.viewcount AS "viewcount",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		office.name AS "office.name"
+	</sql>
+	
+	<sql id="fodderJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id
+	</sql>
+	<sql id="fodderTodayListJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id 
+		left JOIN book b ON a.book_id = b.id
+	</sql>
+	
+    <resultMap type="Fodder" id="FodderResult" autoMapping="true">
+    	<result column="content" property="content"   typeHandler="com.jeeplus.common.mapper.ConvertBlobTypeHandler"/>
+    </resultMap>
+    
+	<select id="get" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM fodder a
+		<include refid="fodderJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findFodderPage" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM (SELECT
+			f.*,b.payCoin
+		FROM
+			fodder f
+		LEFT JOIN (
+			SELECT
+				ubh.book_id,
+				sum(pay_coin)/occ.coin_rate AS payCoin
+			FROM
+				user_buychapter_history ubh
+				left join book b on b.id = ubh.book_id
+				left join office_coin_config occ on occ.office_id = b.office_id
+			where
+				<![CDATA[ ubh.create_date >=#{beginDate}]]> and <![CDATA[ ubh.create_date<#{endDate}]]>
+				 and ubh.originalPrice is not null
+			GROUP BY
+				ubh.book_id
+		) b ON f.book_id = b.book_id
+		where payCoin >#{dbPayCoin} and f.del_flag = #{DEL_FLAG_NORMAL}
+		ORDER BY
+			payCoin DESC
+		LIMIT 0,
+		 ${page.pageSize}) a
+		<include refid="fodderJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+
+			<if test="title != null and title != ''">
+				AND  id not  in
+				<foreach collection="array" index="index" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<!-- <if test="beginDate != null">
+				<![CDATA[ AND a.update_date >= #{beginDate} ]]>
+			</if>
+			<if test="endDate != null">
+				<![CDATA[ AND a.update_date < #{endDate}]]>
+			</if> -->
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY payCoin DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findRecommendFodderPage" resultType="Fodder">
+		select 
+			id,
+			title,
+			titleImage,
+			bookId,
+			chapter,
+			a.office_id as "office.id",
+			viewcount,
+			createDate,
+			a.office_name as "office.name",
+			convertRate
+		from (select 
+			f.id AS "id",
+			f.title AS "title",
+			f.title_image AS "titleImage",
+			f.book_id AS "bookId",
+			f.chapter AS "chapter",
+			f.office_id,
+			viewcount AS "viewcount",
+			f.create_date AS "createDate",
+			office.name as "office_name",
+			a.convert_rate as "convertRate",
+			(select count(1) from user_click_history where fodder_id = f.id) as "fodderViewCount"
+		 from fodder f 
+		LEFT JOIN sys_office office ON office.id = f.office_id
+		inner join (select * from (
+			select 
+				b.id id,
+				b.name name,
+				b.office_id,
+				b.create_date create_date,
+				bh.by_person,
+				ch.view_count,
+				bh.by_person / ch.view_count convert_rate
+			 from 
+				book b
+				left join 
+					(select book_id, count(1) view_count from user_read_history 
+						where create_date BETWEEN #{beginDate} and #{endDate}
+						GROUP BY book_id) ch on ch.book_id = b.id
+				left join
+					(select book_id,count(distinct create_by) by_person from user_buychapter_history 
+						where originalPrice is not null and 
+							create_date BETWEEN #{beginDate} and #{endDate}
+						GROUP BY book_id) bh on b.id = bh.book_id
+				left join office_coin_config occ on occ.office_id = b.office_id
+				where b.del_flag = #{DEL_FLAG_NORMAL}
+			) a  where a.convert_rate is not null ORDER BY a.convert_rate desc )a on f.book_id = a.id 
+		<where>
+			f.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+		 order BY f.book_id desc,fodderViewCount desc) a 
+		 GROUP BY a.bookId
+	</select>
+	
+	<select id="findNoViewHisFodder" resultType="Fodder">
+		select 
+			id,
+			title,
+			titleImage,
+			bookId,
+			chapter,
+			a.office_id as "office.id",
+			fodderViewCount as viewcount,
+			createDate,
+			a.office_name as "office.name",
+			0 as "convertRate"
+		from (select 
+			f.id AS "id",
+			f.title AS "title",
+			f.title_image AS "titleImage",
+			f.book_id AS "bookId",
+			f.chapter AS "chapter",
+			f.office_id,
+			f.create_date AS "createDate",
+			office.name as "office_name",
+			(select count(1) from user_click_history where fodder_id = f.id) as "fodderViewCount"
+		 from fodder f 
+		LEFT JOIN sys_office office ON office.id = f.office_id
+		inner join book b on b.id = f.book_id and b.create_date <![CDATA[ < ]]> #{endDate} and b.del_flag = #{DEL_FLAG_NORMAL}
+		where
+			f.del_flag = #{DEL_FLAG_NORMAL}
+		 order BY f.book_id desc, fodderViewCount desc) a where a.fodderViewCount = 0
+		 GROUP BY a.bookId
+	</select>
+	
+	
+	<select id="findNewFodderPage" resultType="Fodder">
+		select 
+			f.id AS "id",
+			f.title AS "title",
+			f.title_image AS "titleImage",
+			f.book_id AS "bookId",
+			f.chapter AS "chapter",
+			f.office_id AS "office.id",
+			f.viewcount AS "viewcount",
+			f.create_date AS "createDate",
+			office.name AS "office.name"
+		 from fodder f 
+		LEFT JOIN sys_office office ON office.id = f.office_id
+		inner join book b on b.id = f.book_id and b.del_flag = #{DEL_FLAG_NORMAL}
+			 and b.create_date BETWEEN #{beginDate} and #{endDate}
+		<where>
+			f.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+	</select>
+	
+	<select id="findToDayList" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		,b.name as "bookName",
+		b.tags as "bookTags"
+		FROM fodder a
+		<include refid="fodderTodayListJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="notViewId != null and notViewId != ''">
+				and a.id not  in
+			<foreach collection="notViewId" index="index" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			</if>
+			<!-- <if test="beginDate != null">
+				<![CDATA[ AND b.create_date >= #{beginDate} ]]>
+			</if>
+			<if test="endDate != null">
+				<![CDATA[ AND b.create_date < #{endDate}]]>
+			</if> -->
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY b.create_date DESC
+			</otherwise>
+		</choose>
+
+
+		LIMIT #{pageNo},#{pageSize}
+
+	</select>
+
+	
+	<select id="findList" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM fodder a
+		<include refid="fodderJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="beginDate != null">
+				<![CDATA[ AND a.update_date >= #{beginDate} ]]>
+			</if>
+			<if test="endDate != null">
+				<![CDATA[ AND a.update_date < #{endDate}]]>
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM fodder a
+		<include refid="fodderJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO fodder(
+			id,
+			title,
+			title_image,
+			content,
+			link_url,
+			book_id,
+			chapter,
+			office_id,
+			viewcount,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{title},
+			#{titleImage},
+			#{content},
+			#{linkUrl},
+			#{bookId},
+			#{chapter},
+			#{office.id},
+			#{viewcount},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE fodder SET 	
+			title = #{title},
+			title_image = #{titleImage},
+			content = #{content},
+			link_url = #{linkUrl},
+			book_id = #{bookId},
+			chapter = #{chapter},
+			office_id = #{office.id},
+			viewcount = #{viewcount},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM fodder
+		WHERE id = #{id}
+	</update>
+	
+	
+	
+	<!--添加点击次数-->
+	<update id="addClickCount">
+		UPDATE fodder SET 
+			viewcount = viewcount +1
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE fodder SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="Fodder" statementType="STATEMENT">
+		select * FROM fodder  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

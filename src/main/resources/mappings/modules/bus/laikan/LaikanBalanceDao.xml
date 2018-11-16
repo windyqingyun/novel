@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.laikan.dao.LaikanBalanceDao">
+    
+	<sql id="laikanBalanceColumns">
+		a.id AS "id",
+		a.money AS "money",
+		a.is_success AS "isSuccess"
+	</sql>
+	
+	<sql id="laikanBalanceJoins">
+	</sql>
+	
+    
+	<select id="get" resultType="LaikanBalance" >
+		SELECT 
+			<include refid="laikanBalanceColumns"/>
+		FROM laikan_balance a
+		<include refid="laikanBalanceJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="LaikanBalance" >
+		SELECT 
+			<include refid="laikanBalanceColumns"/>
+		FROM laikan_balance a
+		<include refid="laikanBalanceJoins"/>
+		<where>
+			
+			<if test="id != null and id != ''">
+				AND a.id = #{id}
+			</if>
+			<if test="isSuccess != null and isSuccess != ''">
+				AND a.is_success = #{isSuccess}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="LaikanBalance" >
+		SELECT 
+			<include refid="laikanBalanceColumns"/>
+		FROM laikan_balance a
+		<include refid="laikanBalanceJoins"/>
+		<where>
+			
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO laikan_balance(
+			id,
+			money,
+			is_success
+		) VALUES (
+			#{id},
+			#{money},
+			#{isSuccess}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE laikan_balance SET 	
+			money = #{money},
+			is_success = #{isSuccess}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM laikan_balance
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE laikan_balance SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="LaikanBalance" statementType="STATEMENT">
+		select * FROM laikan_balance  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

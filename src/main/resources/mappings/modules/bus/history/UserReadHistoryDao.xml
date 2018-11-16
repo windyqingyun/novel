@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.history.dao.UserReadHistoryDao">
+    
+	<sql id="userReadHistoryColumns">
+		a.id AS "id",
+		a.fodder_id AS "fodderId",
+		a.book_id AS "bookId",
+		a.chapter AS "chapter",
+		a.chapter_title AS "chapterTitle",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		f.id AS "fodder.id",
+		f.title AS "fodder.title",
+		f.title_image AS "fodder.titleImage",
+		f.link_url AS "fodder.linkUrl",
+		office.name AS "fodder.office.name",
+		b.name AS "book.name",
+		b.title AS "book.title",
+		b.author AS "book.author",
+		b.image AS "book.image",
+		b.tags AS "book.tags"
+	</sql>
+	
+	<sql id="userReadHistoryJoins">
+		left join fodder f on f.id = a.fodder_id
+		left join book b on b.id = a.book_id
+		LEFT JOIN sys_office office ON office.id = f.office_id
+	</sql>
+	
+    
+	<select id="get" resultType="UserReadHistory" >
+		SELECT 
+			<include refid="userReadHistoryColumns"/>
+		FROM user_read_history a
+		<include refid="userReadHistoryJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="getLastViewInfo" resultType="java.util.Map" >
+		select 
+			b.name as "lastViewTitle",
+			bc.title as "bookChapterTitle"
+		from user_read_history a
+			inner join book b on b.id = a.book_id
+			left join book_chapter bc on bc.book_id = a.book_id and a.chapter = bc.chapter
+		where a.create_by = #{userId} and b.office_id = #{officeId}
+			ORDER BY a.update_date desc LIMIT 0,1
+	</select>
+	
+	<select id="getViewCount" resultType="java.lang.Integer">
+		select 
+			count(1)
+		from user_read_history a
+			inner join book b on b.id = a.book_id
+		where a.create_by = #{userId} and b.office_id = #{officeId}
+	</select>
+	
+	<select id="findList" resultType="UserReadHistory" >
+		SELECT 
+			<include refid="userReadHistoryColumns"/>
+		FROM user_read_history a
+		<include refid="userReadHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="fodderId != null and fodderId != ''">
+				AND a.fodder_id = #{fodderId}
+			</if>
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+			<if test="officeId != null and officeId != ''">
+				and f.office_id = #{officeId}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findReadHistoryInfoList" resultType="java.util.Map" >
+			select  
+				b.name as "title",
+				b.image as "titleImage",
+				r.chapter as "chapter",
+				r.book_id as "bookId",
+				bc.title as "chapterTitle"
+		 from user_read_history r 
+			left join book b on b.id = r.book_id 
+			left join book_chapter bc on bc.chapter = r.chapter and bc.book_id = r.book_id
+			where r.del_flag = '0' 
+				<if test="createBy != null and createBy.id != null and createBy.id != ''">
+					AND r.create_by = #{createBy.id}
+				</if>
+				<if test="officeId != null and officeId != ''">
+					and b.office_id = #{officeId}
+				</if>
+			ORDER BY r.update_date desc
+	</select>
+	
+	
+	<select id="findAllList" resultType="UserReadHistory" >
+		SELECT 
+			<include refid="userReadHistoryColumns"/>
+		FROM user_read_history a
+		<include refid="userReadHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO user_read_history(
+			id,
+			fodder_id,
+			book_id,
+			chapter,
+			chapter_title,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{fodderId},
+			#{bookId},
+			#{chapter},
+			#{chapterTitle},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE user_read_history SET 	
+			fodder_id = #{fodderId},
+			book_id = #{bookId},
+			chapter = #{chapter},
+			chapter_title = #{chapterTitle},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM user_read_history
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE user_read_history SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="UserReadHistory" statementType="STATEMENT">
+		select * FROM user_read_history  where ${propertyName} = '${value}'
+	</select>
+	
+	<select id="getUserReadHistoryByCustomerId" resultType="UserReadHistory">
+		SELECT 
+			<include refid="userReadHistoryColumns"/>
+		FROM user_read_history a
+		<include refid="userReadHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="fodderId != null and fodderId != ''">
+				AND a.fodder_id = #{fodderId}
+			</if>
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			<if test="officeId != null and officeId != ''">
+				and f.office_id = #{officeId}
+			</if>
+			AND a.create_by = #{createBy.id}
+		</where>
+	</select>
+	
+</mapper>

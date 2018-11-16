@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.OfficeInterfaceConfigDao">
+    
+	<sql id="officeInterfaceConfigColumns">
+		a.id AS "id",
+		a.name AS "name",
+		a.office_id AS "office.id",
+		a.secret_key AS "secretKey",
+		a.enable AS "enable",
+		a.remarks AS "remarks",
+		office.name AS "office.name",
+		a.pay_interface_url as "payInterfaceUrl",
+		a.pay_query_url as "payQueryUrl"
+	</sql>
+	
+	<sql id="officeInterfaceConfigJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id
+	</sql>
+	
+    
+	<select id="get" resultType="OfficeInterfaceConfig" >
+		SELECT 
+			<include refid="officeInterfaceConfigColumns"/>
+		FROM office_interface_config a
+		<include refid="officeInterfaceConfigJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="getOfficeInterfaceConfigByOffice" resultType="OfficeInterfaceConfig">
+		SELECT 
+			<include refid="officeInterfaceConfigColumns"/>
+		FROM office_interface_config a
+			<include refid="officeInterfaceConfigJoins"/>
+		WHERE a.office_id = #{officeId}
+	</select>
+	
+	<select id="findList" resultType="OfficeInterfaceConfig" >
+		SELECT 
+			<include refid="officeInterfaceConfigColumns"/>
+		FROM office_interface_config a
+		<include refid="officeInterfaceConfigJoins"/>
+		<where>
+			
+			<if test="name != null and name != ''">
+				AND a.name LIKE 
+					<if test="dbName == 'oracle'">'%'||#{name}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{name}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{name},'%')</if>
+			</if>
+			<if test="office != null and office.id != null and office.id != ''">
+				AND a.office_id = #{office.id}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OfficeInterfaceConfig" >
+		SELECT 
+			<include refid="officeInterfaceConfigColumns"/>
+		FROM office_interface_config a
+		<include refid="officeInterfaceConfigJoins"/>
+		<where>
+			
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO office_interface_config(
+			id,
+			name,
+			office_id,
+			secret_key,
+			enable,
+			remarks,
+			pay_interface_url,
+			pay_query_url
+		) VALUES (
+			#{id},
+			#{name},
+			#{office.id},
+			#{secretKey},
+			#{enable},
+			#{remarks},
+			#{payInterfaceUrl},
+			#{payQueryUrl}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE office_interface_config SET 	
+			name = #{name},
+			office_id = #{office.id},
+			secret_key = #{secretKey},
+			enable = #{enable},
+			remarks = #{remarks},
+			pay_interface_url = #{payInterfaceUrl},
+			pay_query_url = #{payQueryUrl}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM office_interface_config
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE office_interface_config SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="OfficeInterfaceConfig" statementType="STATEMENT">
+		select * FROM office_interface_config  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

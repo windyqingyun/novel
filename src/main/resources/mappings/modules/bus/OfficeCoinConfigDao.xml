@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.OfficeCoinConfigDao">
+    
+	<sql id="officeCoinConfigColumns">
+		a.id AS "id",
+		a.officesimplyname AS "officesimplyname",
+		a.office_id AS "office.id",
+		a.ticketname AS "ticketname",
+		a.coinname AS "coinname",
+		a.remarks AS "remarks",
+		office.name AS "office.name",
+		a.coin_rate as "coinRate"
+	</sql>
+	
+	<sql id="officeCoinConfigJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id
+	</sql>
+	
+    
+	<select id="get" resultType="OfficeCoinConfig" >
+		SELECT 
+			<include refid="officeCoinConfigColumns"/>
+		FROM office_coin_config a
+		<include refid="officeCoinConfigJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="getOfficeCoinConfigByOffice" resultType="OfficeCoinConfig" >
+		SELECT 
+			<include refid="officeCoinConfigColumns"/>
+		FROM office_coin_config a
+		<include refid="officeCoinConfigJoins"/>
+		WHERE a.office_id = #{officeId}
+	</select>
+	
+	<select id="findList" resultType="OfficeCoinConfig" >
+		SELECT 
+			<include refid="officeCoinConfigColumns"/>
+		FROM office_coin_config a
+		<include refid="officeCoinConfigJoins"/>
+		<where>
+			
+			<if test="office != null and office.id != null and office.id != ''">
+				AND a.office_id = #{office.id}
+			</if>
+			<if test="coinname != null and coinname != ''">
+				AND a.coinname LIKE 
+					<if test="dbName == 'oracle'">'%'||#{coinname}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{coinname}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{coinname},'%')</if>
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OfficeCoinConfig" >
+		SELECT 
+			<include refid="officeCoinConfigColumns"/>
+		FROM office_coin_config a
+		<include refid="officeCoinConfigJoins"/>
+		<where>
+			
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO office_coin_config(
+			id,
+			officesimplyname,
+			office_id,
+			ticketname,
+			coinname,
+			remarks,
+			coin_rate
+		) VALUES (
+			#{id},
+			#{officesimplyname},
+			#{office.id},
+			#{ticketname},
+			#{coinname},
+			#{remarks},
+			#{coinRate}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE office_coin_config SET 	
+			officesimplyname = #{officesimplyname},
+			office_id = #{office.id},
+			ticketname = #{ticketname},
+			coinname = #{coinname},
+			remarks = #{remarks},
+			coin_rate = #{coinRate}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM office_coin_config
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE office_coin_config SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="OfficeCoinConfig" statementType="STATEMENT">
+		select * FROM office_coin_config  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

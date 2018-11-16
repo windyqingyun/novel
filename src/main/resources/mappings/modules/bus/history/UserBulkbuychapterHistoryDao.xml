@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.history.dao.UserBulkbuychapterHistoryDao">
+    
+	<sql id="userBulkbuychapterHistoryColumns">
+		a.id AS "id",
+		a.book_id AS "bookId",
+		a.begin_chapter AS "beginChapter",
+		a.end_chapter AS "endChapter",
+		a.buy_chapter_count AS "buyChapterCount",
+		a.originalprice AS "originalprice",
+		a.discount AS "discount",
+		a.pay_coin AS "payCoin",
+		a.pay_ticket AS "payTicket",
+		a.fodder_id as "fodderId",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+	</sql>
+	
+	<sql id="userBulkbuychapterHistoryJoins">
+	</sql>
+	
+    
+	<select id="get" resultType="UserBulkbuychapterHistory" >
+		SELECT 
+			<include refid="userBulkbuychapterHistoryColumns"/>
+		FROM user_bulkBuyChapter_history a
+		<include refid="userBulkbuychapterHistoryJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="UserBulkbuychapterHistory" >
+		SELECT 
+			<include refid="userBulkbuychapterHistoryColumns"/>
+		FROM user_bulkBuyChapter_history a
+		<include refid="userBulkbuychapterHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="calculatePrice" resultType="java.math.BigDecimal" >
+		select sum(bc.price) from book_chapter bc 
+			where bc.del_flag = '0' and bc.chapter BETWEEN #{beginChapter} and #{endChapter}
+		    and bc.book_id = #{bookId}
+	</select>
+	
+	<select id="sumUserBuyAmout" resultType="java.math.BigDecimal" >
+		select sum(u.originalPrice) 
+			from user_buychapter_history u 
+		where u.book_id = #{bookId} and u.chapter BETWEEN #{beginChapter} and #{endChapter} and u.create_by = #{createBy.id}
+	</select>
+	
+	<select id="findAllList" resultType="UserBulkbuychapterHistory" >
+		SELECT 
+			<include refid="userBulkbuychapterHistoryColumns"/>
+		FROM user_bulkBuyChapter_history a
+		<include refid="userBulkbuychapterHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO user_bulkBuyChapter_history(
+			id,
+			book_id,
+			begin_chapter,
+			end_chapter,
+			buy_chapter_count,
+			originalprice,
+			discount,
+			pay_coin,
+			pay_ticket,
+			fodder_id,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{bookId},
+			#{beginChapter},
+			#{endChapter},
+			#{buyChapterCount},
+			#{originalprice},
+			#{discount},
+			#{payCoin},
+			#{payTicket},
+			#{fodderId},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE user_bulkBuyChapter_history SET 	
+			book_id = #{bookId},
+			begin_chapter = #{beginChapter},
+			end_chapter = #{endChapter},
+			buy_chapter_count = #{buyChapterCount},
+			originalprice = #{originalprice},
+			discount = #{discount},
+			pay_coin = #{payCoin},
+			pay_ticket = #{payTicket},
+			fodder_id = #{fodderId},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM user_bulkBuyChapter_history
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE user_bulkBuyChapter_history SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="UserBulkbuychapterHistory" statementType="STATEMENT">
+		select * FROM user_bulkBuyChapter_history  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

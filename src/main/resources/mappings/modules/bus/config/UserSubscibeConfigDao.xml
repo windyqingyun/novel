@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.config.dao.UserSubscibeConfigDao">
+    
+	<sql id="userSubscibeConfigColumns">
+		a.id AS "id",
+		a.is_auto_buy AS "isAutoBuy",
+		a.book_id AS "bookId",
+		a.fodder_id as "fodderId",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+	</sql>
+	
+	<sql id="userSubscibeConfigJoins">
+	</sql>
+	
+    
+	<select id="get" resultType="UserSubscibeConfig" >
+		SELECT 
+			<include refid="userSubscibeConfigColumns"/>
+		FROM user_subscibe_config a
+		<include refid="userSubscibeConfigJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="UserSubscibeConfig" >
+		SELECT 
+			<include refid="userSubscibeConfigColumns"/>
+		FROM user_subscibe_config a
+		<include refid="userSubscibeConfigJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			<if test="updateDate != null and updateDate != ''">
+				AND a.update_date = #{updateDate}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+			<if test="fodderId != null and fodderId != ''">
+				AND a.fodder_id = #{fodderId}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findSubscibeInfoList" resultType="java.util.Map" >
+		select 
+		f.title as "title",
+		f.title_image as "titleImage",
+		o.name as "officeName",
+		DATE_FORMAT(sc.create_date,'%Y.%m.%d %H:%i') as "createDate"
+		from user_subscibe_config sc 
+			left join fodder f on f.id = sc.fodder_id
+			left join sys_office o on o.id = f.office_id
+			where sc.del_flag = '0'
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND sc.create_by = #{createBy.id}
+			</if>
+			order by sc.create_date desc
+	</select>
+	
+	<select id="findAllList" resultType="UserSubscibeConfig" >
+		SELECT 
+			<include refid="userSubscibeConfigColumns"/>
+		FROM user_subscibe_config a
+		<include refid="userSubscibeConfigJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO user_subscibe_config(
+			id,
+			is_auto_buy,
+			book_id,
+			fodder_id,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{isAutoBuy},
+			#{bookId},
+			#{fodderId},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE user_subscibe_config SET 	
+			is_auto_buy = #{isAutoBuy},
+			book_id = #{bookId},
+			fodder_id = #{fodderId},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM user_subscibe_config
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE user_subscibe_config SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="UserSubscibeConfig" statementType="STATEMENT">
+		select * FROM user_subscibe_config  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

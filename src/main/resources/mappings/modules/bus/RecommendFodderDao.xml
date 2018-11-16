@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.RecommendFodderDao">
+    
+	<sql id="fodderColumns">
+		a.id AS "id",
+		a.title AS "title",
+		a.title_image AS "titleImage",
+		a.content AS "content",
+		a.link_url AS "linkUrl",
+		a.book_id AS "bookId",
+		a.chapter AS "chapter",
+		a.office_id AS "office.id",
+		a.viewcount AS "viewcount",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		office.name AS "office.name"
+	</sql>
+	
+	<sql id="fodderJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id
+	</sql>
+	
+	
+    <resultMap type="RecommendFodder" id="FodderResult" autoMapping="true">
+    	<result column="content" property="content"   typeHandler="com.jeeplus.common.mapper.ConvertBlobTypeHandler"/>
+    </resultMap>
+    
+	<select id="get" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM recommend_fodder a
+		<include refid="fodderJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	
+	
+	<select id="findList" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM fodder a
+		<include refid="fodderJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="beginDate != null">
+				<![CDATA[ AND a.update_date >= #{beginDate} ]]>
+			</if>
+			<if test="endDate != null">
+				<![CDATA[ AND a.update_date < #{endDate}]]>
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+
+
+	<select id="findRecommendFooderList" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM recommend_fodder a
+		<include refid="fodderJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="beginDate != null">
+				<![CDATA[ AND a.update_date >= #{beginDate} ]]>
+			</if>
+			<if test="endDate != null">
+				<![CDATA[ AND a.update_date < #{endDate}]]>
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.sort asc
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultMap="FodderResult" >
+		SELECT 
+			<include refid="fodderColumns"/>
+		FROM recommend_fodder a
+		<include refid="fodderJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.sort asc
+			</otherwise>
+		</choose>
+	</select>
+	 <insert id="addRecommendFooder" parameterType="java.util.List">
+        INSERT INTO recommend_fodder(
+			id,
+			title,
+			title_image,
+			content,
+			link_url,
+			book_id,
+			chapter,
+			office_id,
+			viewcount,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			sort
+		)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+			#{item.id},
+			#{item.title},
+			#{item.titleImage},
+			#{item.content},
+			#{item.linkUrl},
+			#{item.bookId},
+			#{item.chapter},
+			#{item.office.id},
+			#{item.viewcount},
+			#{item.createBy.id},
+			#{item.createDate},
+			#{item.updateBy.id},
+			#{item.updateDate},
+			#{item.remarks},
+			#{item.delFlag},
+			#{item.sort}
+		)
+        </foreach>
+    </insert>
+	
+	<insert id="insert">
+		INSERT INTO recommend_fodder(
+			id,
+			title,
+			title_image,
+			content,
+			link_url,
+			book_id,
+			chapter,
+			office_id,
+			viewcount,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			sort
+		) VALUES (
+			#{id},
+			#{title},
+			#{titleImage},
+			#{content},
+			#{linkUrl},
+			#{bookId},
+			#{chapter},
+			#{office.id},
+			#{viewcount},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{sort}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE recommend_fodder SET 	
+			title = #{title},
+			title_image = #{titleImage},
+			content = #{content},
+			link_url = #{linkUrl},
+			book_id = #{bookId},
+			chapter = #{chapter},
+			office_id = #{office.id},
+			viewcount = #{viewcount},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM recommend_fodder
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="deleteAllRecommendFooder">
+		DELETE FROM recommend_fodder
+	</update>
+	
+	<!--添加点击次数-->
+	<update id="addClickCount">
+		UPDATE recommend_fodder SET 
+			viewcount = viewcount +1
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE recommend_fodder SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="Fodder" statementType="STATEMENT">
+		select * FROM recommend_fodder  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

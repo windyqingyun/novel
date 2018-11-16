@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.BookDao">
+    
+	<sql id="bookColumns">
+		a.id AS "id",
+		a.`name` AS "name",
+		a.title AS "title",
+		a.author AS "author",
+		a.image AS "image",
+		a.`condition` AS "condition",
+		a.tags AS "tags",
+		a.office_id AS "office.id",
+		a.original_id AS "originalId",
+		a.publish_date AS "publishDate",
+		a.viewcount AS "viewcount",
+		a.customviewcount AS "customviewcount",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		office.`name` AS "office.name"
+	</sql>
+	
+	<sql id="bookJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id
+	</sql>
+	
+    
+	<select id="get" resultType="Book" >
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="getBookOfficeId" resultType="java.lang.String" >
+		SELECT 
+			a.office_id
+		FROM book a
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="existsBookAndrstId" resultType="java.lang.String">
+		SELECT 
+			a.id
+		FROM book a
+		<include refid="bookJoins"/>
+		<where>
+			a.del_flag = '0'
+			<if test="officeId != null and officeId != ''">
+				AND a.office_id = #{officeId} 
+			</if>
+			AND a.original_id = #{originalId}
+		</where>
+	</select>
+	
+	<select id="findList" resultType="Book" >
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="name != null and name != ''">
+				AND a.name LIKE 
+					<if test="dbName == 'oracle'">'%'||#{name}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{name}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{name},'%')</if>
+			</if>
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="author != null and author != ''">
+				AND a.author = #{author}
+			</if>
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+			<if test="tags != null and tags != ''">
+				AND a.tags = #{tags}
+			</if>
+			<if test="originalId != null and originalId != ''">
+				AND a.original_id = #{originalId}
+			</if>
+			<if test="publishDate != null and publishDate != ''">
+				AND a.publish_date = #{publishDate}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="Book" >
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO book(
+			id,
+			name,
+			title,
+			author,
+			image,
+			tags,
+			office_id,
+			original_id,
+			publish_date,
+			viewcount,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{name},
+			#{title},
+			#{author},
+			#{image},
+			#{tags},
+			#{office.id},
+			#{originalId},
+			#{publishDate},
+			#{viewcount},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE book SET 	
+			name = #{name},
+			title = #{title},
+			author = #{author},
+			image = #{image},
+			tags = #{tags},
+			office_id = #{office.id},
+			original_id = #{originalId},
+			publish_date = #{publishDate},
+			viewcount = #{viewcount},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM book
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE book SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<!--添加点击次数-->
+	<update id="addClickCount">
+		UPDATE book SET 
+			viewcount = viewcount + 1
+		WHERE id = #{id}
+	</update>
+	
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="Book" statementType="STATEMENT">
+		select * FROM book  where ${propertyName} = '${value}'
+	</select>
+	
+	
+	<!-- 精品(已过时): 充值总额排行榜 DATE_FORMAT(h.create_date,'%Y-%m')-->
+	<select id="findPageByFine_bak" resultType="Book" parameterType="Book">		
+		SELECT
+			<include refid="bookColumns"/> 
+		FROM book a 
+			<include refid="bookJoins"/>
+			LEFT JOIN 
+			( SELECT h.book_id, h.create_date as hh_create_date, sum(pay_coin) as totalCoin 
+				FROM user_bulkbuychapter_history h
+				group by book_id ) tmp
+			on a.id = tmp.book_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		ORDER BY hh_create_date desc, totalCoin desc 
+	</select>
+	
+	<!-- 精品: 充值总额排行榜 (最近三天每本书充值排行) DATE_FORMAT(h.create_date,'%Y-%m')-->
+	<select id="findPageByFine" resultType="Book" parameterType="Book">		
+		SELECT
+			<include refid="bookColumns"/> 
+		FROM book a 
+			<include refid="bookJoins"/>
+			LEFT JOIN 
+			( SELECT p.book_id, p.create_date as "p_create_date", sum(p.price) as "price_sum"
+				from payment_bill p 
+				where p.create_date >= DATE_SUB(CURDATE(),INTERVAL + 3 DAY)
+				and p.book_id <![CDATA[ <> ]]> ''
+				GROUP BY p.book_id
+			) tmp on a.id = tmp.book_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		ORDER BY price_sum desc, p_create_date desc 
+	</select>
+	
+	
+	<!-- 人气(已过时): 根据点击量查询人气榜  -->
+	<select id="findPageByPopularity_bak" resultType="Book" parameterType="Book">
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.customviewcount DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 人气: 根据点击量查询人气榜 (最近三天每本书点击量)  -->
+	<select id="findPageByPopularity" resultType="Book" parameterType="Book">
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		LEFT JOIN
+			(select click_resource, count(1) as "click_count"
+			from
+				(select l.click_resource from user_click_log l 
+				where create_time >= DATE_SUB(CURDATE(),INTERVAL + 3 DAY)
+				) t
+			GROUP BY click_resource
+			) tt on a.id = tt.click_resource
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY click_count DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 畅销(已过时): 根据售卖记录排行查询书籍  (最近三天每本书有多少人买)-->
+	<select id="findPageByHotsell_bak" resultType="Book" parameterType="Book">
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a 
+		<include refid="bookJoins"/>
+		LEFT JOIN 
+			(SELECT book_id, COUNT(create_by) user_count 
+			FROM 
+				(SELECT DISTINCT book_id, create_by
+				FROM `user_bulkbuychapter_history`
+				where create_date >= DATE_SUB(CURDATE(),INTERVAL + 3 DAY)
+				) u
+			GROUP BY book_id
+			) uu ON a.id = uu.book_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		ORDER BY user_count DESC
+	</select>
+	
+	<!-- 畅销: 根据售卖记录排行查询书籍  (最近三天每本书卖了多少钱)-->
+	<select id="findPageByHotsell" resultType="Book" parameterType="Book">
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a 
+		<include refid="bookJoins"/>
+		LEFT JOIN 
+			(SELECT book_id, sum(pay_coin) as pay_coin_sum 
+			FROM 
+				(SELECT book_id, pay_coin
+				FROM `user_buychapter_history`
+				where create_date >= DATE_SUB(CURDATE(),INTERVAL + 3 DAY)
+				) u
+			GROUP BY book_id
+			) uu ON a.id = uu.book_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		ORDER BY pay_coin_sum DESC
+	</select>
+	
+	<!-- 新书: 新书排行 距离现在90天的书  -->
+	<select id="findPageByNewbook" resultType="Book" parameterType="Book">
+		SELECT 
+			<include refid="bookColumns"/>
+		FROM book a 
+		<include refid="bookJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+			AND DATEDIFF(now(), a.create_date) <![CDATA[ < ]]> 91
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	
+	<!-- 猜你喜欢推荐书籍 AND b.office_id != '100000002009' -->
+	<select id="recommend" resultType="Book" parameterType="Book">
+		SELECT b.id, b.name, b.title, b.image 
+		FROM `book` b, `user_bulkbuychapter_history` h 		
+		<where>
+			b.id = h.book_id
+			AND b.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND b.condition = #{condition}
+			</if>
+		</where>
+	</select>
+	
+	
+	<update id="updateCustomviewcount">
+		UPDATE book SET 	
+			customviewcount = #{customviewcount} 
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

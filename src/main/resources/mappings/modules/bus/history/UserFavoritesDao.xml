@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.history.dao.UserFavoritesDao">
+    
+	<sql id="userFavoritesColumns">
+		a.id AS "id",
+		a.fodder_id AS "fodderId",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		f.id AS "fodder.id",
+		f.title AS "fodder.title",
+		f.title_image AS "fodder.titleImage",
+		f.link_url AS "fodder.linkUrl",
+		f.office_id AS "fodder.office.id",
+		office.name AS "fodder.office.name",
+		f.viewcount AS "fodder.viewcount",
+		f.create_date AS "fodder.createDate"
+	</sql>
+	
+	<sql id="userFavoritesJoins">
+		left join fodder f on f.id = a.fodder_id 
+		LEFT JOIN sys_office office ON office.id = f.office_id
+	</sql>
+	
+    
+	<select id="get" resultType="UserFavorites" >
+		SELECT 
+			<include refid="userFavoritesColumns"/>
+		FROM user_favorites a
+		<include refid="userFavoritesJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="UserFavorites" >
+		SELECT 
+			<include refid="userFavoritesColumns"/>
+		FROM user_favorites a
+		<include refid="userFavoritesJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="fodderId != null and fodderId != ''">
+				AND a.fodder_id = #{fodderId}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+			<if test="officeId != null and officeId != ''">
+				and f.office_id = #{officeId}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="UserFavorites" >
+		SELECT 
+			<include refid="userFavoritesColumns"/>
+		FROM user_favorites a
+		<include refid="userFavoritesJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO user_favorites(
+			id,
+			fodder_id,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{fodderId},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE user_favorites SET 	
+			fodder_id = #{fodderId},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM user_favorites
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE user_favorites SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="UserFavorites" statementType="STATEMENT">
+		select * FROM user_favorites  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

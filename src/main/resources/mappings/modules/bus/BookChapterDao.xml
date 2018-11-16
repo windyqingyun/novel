@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.BookChapterDao">
+    
+	<sql id="bookChapterColumns">
+		a.id AS "id",
+		a.title AS "title",
+		a.chapter AS "chapter",
+		a.content AS "content",
+		a.book_id AS "bookId",
+		a.isvip AS "isvip",
+		a.price AS "price",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		b.office_id AS "office.id",
+		office.name as "office.name",
+		a.original_id as "originalId"
+	</sql>
+	
+	<sql id="bookChapterJoins">
+		left join book b on a.book_id = b.id
+		LEFT JOIN sys_office office ON office.id = b.office_id
+	</sql>
+	
+    
+	<select id="get" resultType="BookChapter" >
+		SELECT 
+			<include refid="bookChapterColumns"/>
+		FROM book_chapter a
+		<include refid="bookChapterJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="getByChapterAndBookId" resultType="BookChapter" >
+		SELECT 
+			<include refid="bookChapterColumns"/>,
+			(select max(chapter) from book_chapter where chapter <![CDATA[ < ]]> #{chapter} and book_id = #{bookId}) as "prevChapter",
+			(select min(chapter) from book_chapter where chapter <![CDATA[ > ]]> #{chapter} and book_id = #{bookId}) as "nextChapter"
+		FROM book_chapter a
+		<include refid="bookChapterJoins"/>
+		WHERE a.book_id = #{bookId}  AND a.chapter = #{chapter}
+	</select>
+	
+	<select id="getPriceBuyChapterAndBookId" resultType="java.math.BigDecimal" >
+		SELECT 
+			a.price
+		FROM book_chapter a
+		WHERE a.book_id = #{bookId}  AND a.chapter = #{chapter}
+	</select>
+	
+	<select id="exsitsChapterAndrstId" resultType="java.lang.String">
+		SELECT 
+			a.id
+		FROM book_chapter a
+		<include refid="bookChapterJoins"/>
+		<where>
+			a.del_flag = '0'
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			AND a.chapter = #{chapter} 
+		</where>
+	</select>
+	
+	<select id="getMinChapterOfBook" resultType="java.lang.Integer">
+		SELECT 
+			min(a.chapter)
+		FROM book_chapter a
+		<where>
+			a.del_flag = '0'
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+		</where>
+	</select>
+	
+	<select id="getMaxChapterOfBook" resultType="java.lang.Integer">
+		SELECT 
+			max(a.chapter)
+		FROM book_chapter a
+		<where>
+			a.del_flag = '0'
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+		</where>
+	</select>
+	
+	<select id="findList" resultType="BookChapter" >
+		SELECT 
+			a.id AS "id",
+			a.title AS "title",
+			a.chapter AS "chapter",
+			a.book_id AS "bookId",
+			a.isvip AS "isvip",
+			a.price AS "price",
+			a.del_flag AS "delFlag",
+			b.office_id AS "office.id",
+			office.name as "office.name",
+			a.original_id as "originalId"
+			<if test="(userId != null and userId != '')">
+				,(select count(1) from user_buyChapter_history h
+				 where h.book_id = a.book_id and h.chapter = a.chapter and h.create_by = #{userId}
+				  and h.del_flag = #{DEL_FLAG_NORMAL}) as "userBuyHistoryCount"
+			</if>
+		FROM book_chapter a
+		<include refid="bookChapterJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="chapter != null and chapter != ''">
+				AND a.chapter = #{chapter}
+			</if>
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			<if test="isvip != null and isvip != ''">
+				AND a.isvip = #{isvip}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.chapter asc
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="BookChapter" >
+		SELECT 
+			<include refid="bookChapterColumns"/>
+		FROM book_chapter a
+		<include refid="bookChapterJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.chapter asc
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 获取章节详情, 并查询上一章和下一章的记录 -->
+	<select id="findBookChapterContent" resultType="com.jeeplus.modules.bus.vo.BookChapterVo">
+		SELECT a.title, a.content,
+			(SELECT id FROM book_chapter WHERE chapter <![CDATA[ < ]]> #{chapter} AND book_id = #{bookId} ORDER BY chapter DESC LIMIT 1) AS "preBookChapterVo.id",
+			(SELECT MAX(chapter) FROM book_chapter WHERE chapter <![CDATA[ < ]]> #{chapter} AND book_id = #{bookId} ) AS "preBookChapterVo.chapter",
+			(SELECT id FROM book_chapter WHERE chapter <![CDATA[ > ]]> #{chapter} AND book_id = #{bookId} ORDER BY chapter ASC LIMIT 1) AS "nextBookChapterVo.id",
+ 			(SELECT MIN(chapter) FROM book_chapter WHERE chapter <![CDATA[ > ]]> #{chapter} AND book_id = #{bookId} ) AS "nextBookChapterVo.chapter"
+		FROM book_chapter a
+		WHERE a.chapter = #{chapter} AND a.book_id = #{bookId}
+	</select>
+	
+	<!-- 获取小说最后一个章节 -->
+	<select id="getLastBookChapterByBookId" resultType="BookChapter">
+		SELECT
+		   bc.id, bc.title, bc.isvip, bc.chapter, bc.book_id AS bookId, bc.`update_date` as updateDate
+		FROM
+		  book_chapter bc
+		WHERE bc.book_id = #{bookId} 
+		 ORDER BY bc.chapter DESC
+		LIMIT 1
+	</select>
+	
+	
+	<!-- 获取用户的最后阅读章节 -->
+	<select id="getLastReadChapterByBookIdAndCustomerId" resultType="BookChapter">
+		SELECT 
+			bc.id,bc.book_id, bc.chapter
+		from 
+			book_chapter bc, user_read_history h
+		where bc.book_id = h.book_id and bc.chapter = h.chapter
+		and h.book_id = #{bookId} 
+		and h.create_by = #{customerId}
+		ORDER BY h.update_date desc 
+		limit 1
+	</select>
+	
+	
+	<!-- 获取小说的总章节数 -->
+	<select id="selectBookChapterCountByBookId" resultType="int">
+		SELECT COUNT(1) 
+		FROM `book_chapter` 
+		WHERE book_id = #{bookId} AND del_flag = 0
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO book_chapter(
+			id,
+			title,
+			chapter,
+			content,
+			book_id,
+			isvip,
+			price,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			original_id
+		) VALUES (
+			#{id},
+			#{title},
+			#{chapter},
+			#{content},
+			#{bookId},
+			#{isvip},
+			#{price},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{originalId}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE book_chapter SET 	
+			title = #{title},
+			chapter = #{chapter},
+			content = #{content},
+			book_id = #{bookId},
+			isvip = #{isvip},
+			price = #{price},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			original_id = #{originalId}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM book_chapter
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE book_chapter SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="BookChapter" statementType="STATEMENT">
+		select * FROM book_chapter  where ${propertyName} = '${value}'
+	</select>
+	
+
+	
+</mapper>

@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.UserBookshelfDao">
+    
+	<sql id="userBookshelfColumns">
+		a.id AS "id",
+		a.user_id AS "user.id",
+		a.book_id AS "bookId",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		user.name AS "user.name"
+	</sql>
+	
+	<sql id="userBookshelfJoins">
+		LEFT JOIN sys_user user ON user.id = a.user_id
+	</sql>
+	
+    
+	<select id="get" resultType="UserBookshelf" >
+		SELECT 
+			<include refid="userBookshelfColumns"/>
+		FROM user_bookshelf a
+		<include refid="userBookshelfJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="UserBookshelf" >
+		SELECT 
+			<include refid="userBookshelfColumns"/>
+		FROM user_bookshelf a
+		<include refid="userBookshelfJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="UserBookshelf" >
+		SELECT 
+			<include refid="userBookshelfColumns"/>
+		FROM user_bookshelf a
+		<include refid="userBookshelfJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<update id="insert">
+		INSERT INTO user_bookshelf(
+			id,
+			user_id,
+			book_id,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{user.id},
+			#{bookId},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		) ON DUPLICATE KEY UPDATE update_date = now()
+	</update>
+	
+	<update id="update">
+		UPDATE user_bookshelf SET 	
+			user_id = #{user.id},
+			book_id = #{bookId},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM user_bookshelf
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE user_bookshelf SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="UserBookshelf" statementType="STATEMENT">
+		select * FROM user_bookshelf  where ${propertyName} = '${value}'
+	</select>
+	
+	<!-- 
+		SELECT 
+			tmp.`id`, tmp.`name`, tmp.`title`, tmp.`image`, 
+			tmp.office_id AS "office.id",
+			tmp3.book_id AS "lastReadBookChapter.bookId", 
+			tmp3.chapter AS "lastReadBookChapter.chapter", 
+			tmp3.`chapter_title` AS "lastReadBookChapter.lastestReadChapterTitle", 
+			tmp3.`create_date` AS "lastReadBookChapter.latestReadTime"
+		FROM 	
+			(SELECT b.`id`, b.`name`, b.`title`, b.`image`, b.`office_id`, ub.`book_id`, ub.`create_date`
+			FROM 
+				(SELECT u.`book_id`, u.`create_date`
+				FROM `user_bookshelf` u 
+				WHERE u.`del_flag` = 0 AND u.`user_id` = #{customerId}) ub 
+			INNER JOIN 
+				`book` b 
+			ON b.`del_flag` = 0 AND b.`id` =  ub.`book_id`) tmp
+		LEFT JOIN 
+			(SELECT tmp2.`book_id`, tmp2.`chapter`, tmp2.`create_by`, tmp2.chapter_title, tmp2.`create_date`
+			FROM (SELECT h.`book_id`, h.`chapter`, h.`create_by`, h.`chapter_title`, h.`create_date`
+				FROM `user_read_history` h 
+				WHERE h.`create_by` = #{customerId}
+				ORDER BY h.`create_date` DESC) AS tmp2
+			GROUP BY `book_id`) tmp3
+		ON tmp3.`book_id` = tmp.`book_id` AND tmp3.`create_by` = #{customerId}
+		ORDER BY tmp.`create_date` DESC
+	-->
+		
+
+	<!-- 根据书架查找书籍, 并根据user_read_history查找最后阅读历史记录 -->
+	<select id="findBookPageByBookshelf" resultType="com.jeeplus.modules.bus.vo.UserBookShelfVo" parameterType="com.jeeplus.modules.bus.vo.UserBookShelfVo">
+		SELECT 
+			tmp.`id`, tmp.`name`, tmp.`title`, tmp.`image`, 
+			tmp.office_id AS "office.id",
+			tmp2.book_id AS "lastReadBookChapter.bookId", 
+			tmp2.chapter AS "lastReadBookChapter.chapter", 
+			tmp2.`chapter_title` AS "lastReadBookChapter.lastestReadChapterTitle", 
+			tmp2.`create_date` AS "lastReadBookChapter.latestReadTime"
+		FROM 	
+			(SELECT b.`id`, b.`name`, b.`title`, b.`image`, b.`office_id`, ub.`book_id`, ub.`create_date`
+			FROM 
+				(SELECT u.`book_id`, u.`create_date`
+				FROM `user_bookshelf` u 
+				WHERE u.`del_flag` = 0 AND u.`user_id` = #{customerId}) ub 
+			INNER JOIN 
+				`book` b 
+			ON b.`del_flag` = 0 AND b.`id` =  ub.`book_id`) tmp
+		LEFT JOIN 
+ 				(SELECT h.`book_id`, h.`chapter`, h.`create_by`, h.`chapter_title`, h.`create_date`
+				FROM `user_read_history` h 
+				WHERE h.`create_by` = #{customerId}) AS tmp2
+		ON tmp2.`book_id` = tmp.`book_id` AND tmp2.`create_by` = #{customerId}
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY tmp.`create_date` DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	
+	<!-- 根据书架查找书籍 -->
+	<select id="findBookPageByBookshelf_bak" resultType="com.jeeplus.modules.bus.vo.UserBookShelfVo">
+		SELECT
+		  b.id, b.name, b.title, b.image
+		FROM
+		  `user_bookshelf` a
+		  left join book b on a.book_id = b.id
+		  left join user_read_history h on 
+		<where>
+			AND a.del_flag = #{DEL_FLAG_NORMAL}
+			AND a.user_id = #{user.id}
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	
+	
+</mapper>

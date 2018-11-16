@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.history.dao.ViewIpHistoryDao">
+    
+	<sql id="viewIpHistoryColumns">
+		a.id AS "id",
+		a.create_date AS "createDate",
+		a.ip_num as "ipNum",
+		a.view_url as "viewUrl",
+		a.biz_id as "bizId",
+		a.user_id as "userId"
+	</sql>
+	
+	<sql id="viewIpHistoryJoins">
+	</sql>
+	
+    
+	<select id="get" resultType="ViewIpHistory" >
+		SELECT 
+			<include refid="viewIpHistoryColumns"/>
+		FROM view_ip_history a
+		<include refid="viewIpHistoryJoins"/>
+		WHERE a.id = #{id}
+	</select>
+
+	<select id="findList" resultType="ViewIpHistory" >
+		SELECT 
+			<include refid="viewIpHistoryColumns"/>
+		FROM view_ip_history a
+		<include refid="viewIpHistoryJoins"/>
+		<where>
+			
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="ViewIpHistory" >
+		SELECT 
+			<include refid="viewIpHistoryColumns"/>
+		FROM view_ip_history a
+		<include refid="viewIpHistoryJoins"/>
+		<where>
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO view_ip_history(
+			id,
+			create_date,
+			ip_num,
+			view_url,
+			user_id,
+			biz_id
+		) VALUES (
+			#{id},
+			#{createDate},
+			#{ipNum},
+			#{viewUrl},
+			#{userId},
+			#{bizId}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE view_ip_history SET 	
+			ip_num = #{ipNum},
+			view_url = #{viewUrl},
+			user_id = #{userId},
+			biz_id = #{bizId}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM view_ip_history
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE view_ip_history SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="ViewIpHistory" statementType="STATEMENT">
+		select * FROM view_ip_history  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

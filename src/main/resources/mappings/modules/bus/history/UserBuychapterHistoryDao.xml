@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.history.dao.UserBuychapterHistoryDao">
+    
+	<sql id="userBuychapterHistoryColumns">
+		a.id AS "id",
+		a.book_id AS "bookId",
+		a.chapter AS "chapter",
+		a.originalprice AS "originalprice",
+		a.discount AS "discount",
+		a.pay_coin AS "payCoin",
+		a.pay_ticket AS "payTicket",
+		a.bulkbuychapter_history_id AS "bulkbuychapterHistoryId",
+		a.fodder_id as "fodderId",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+	</sql>
+	
+	<sql id="userBuychapterHistoryJoins">
+	</sql>
+	
+    
+	<select id="get" resultType="UserBuychapterHistory" >
+		SELECT 
+			<include refid="userBuychapterHistoryColumns"/>
+		FROM user_buyChapter_history a
+		<include refid="userBuychapterHistoryJoins"/>
+		WHERE a.id = #{id} 
+	</select>
+	
+	
+	<select id="findList" resultType="UserBuychapterHistory" >
+		SELECT 
+			<include refid="userBuychapterHistoryColumns"/>
+		FROM user_buyChapter_history a
+		<include refid="userBuychapterHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="bookId != null and bookId != ''">
+				AND a.book_id = #{bookId}
+			</if>
+			<if test="fodderId != null and fodderId != ''">
+				AND a.fodder_id = #{fodderId}
+			</if>
+			<if test="chapter != null and chapter != ''">
+				AND a.chapter = #{chapter}
+			</if>
+			<if test="bulkbuychapterHistoryId != null and bulkbuychapterHistoryId != ''">
+				AND a.bulkbuychapter_history_id = #{bulkbuychapterHistoryId}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findExpenseList" resultType="java.util.Map" >
+		select  
+			a.pay_coin as "payCoin",
+			a.pay_ticket as "pay_ticket",
+			a.chapter as "chapter",
+			bc.title as "title",
+			b.office_id as "officeId",
+			DATE_FORMAT(a.create_date,'%m-%d') as "payDate"
+		from user_buyChapter_history a 
+			left join book_chapter bc on bc.book_id = a.book_id and a.chapter = bc.chapter
+			left join book b on b.id = bc.book_id 
+		<where>
+			 a.del_flag = '0' and bc.del_flag = '0'
+				<if test="userId != null and userId != ''">
+					and a.create_by = #{userId} 
+				</if>
+				<if test="officeId != null and officeId != ''">
+					and b.office_id = #{officeId}
+				</if>
+		</where>
+			order by a.create_date desc
+	</select>
+	
+	<select id="findBoughtList" resultType="java.util.Map" >
+		select
+			a.chapter as "chapter",
+			bc.title as "chapterTitle",
+			b.office_id as "officeId",
+			DATE_FORMAT(a.create_date,'%Y-%m-%d %H:%i:%s') as "payDate",
+			b.name as "title",
+			b.image as "titleImage",
+			b.id as "bookId"
+		from user_buyChapter_history a 
+			left join book_chapter bc on bc.book_id = a.book_id and a.chapter = bc.chapter
+			left join book b on b.id = a.book_id
+		<where>
+			 a.del_flag = '0' and bc.del_flag = '0' and b.del_flag = '0'
+				<if test="userId != null and userId != ''">
+					and a.create_by = #{userId} 
+				</if>
+				<if test="officeIds != null">
+					and b.office_id in
+					<foreach collection="officeIds" item="item" open="(" close=")" separator="">
+						#{item}
+					</foreach>
+				</if>
+		</where>
+		order by a.create_date desc
+	</select>
+	
+	<!-- 获取用户已经该书购买的章节 -->
+	<select id="selectByBookIdAndCustomerId" resultType="java.lang.Integer">
+		select 
+			a.chapter 
+		from user_buyChapter_history a 
+		<where>
+			 a.del_flag = '0' 
+			 and a.book_id = #{bookId}
+			 and a.create_by = #{customerId}
+		</where> 
+	</select>
+	
+	<select id="findAllList" resultType="UserBuychapterHistory" >
+		SELECT 
+			<include refid="userBuychapterHistoryColumns"/>
+		FROM user_buyChapter_history a
+		<include refid="userBuychapterHistoryJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO user_buyChapter_history(
+			id,
+			book_id,
+			chapter,
+			originalprice,
+			discount,
+			pay_coin,
+			pay_ticket,
+			bulkbuychapter_history_id,
+			fodder_id,
+			pay_origin,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{bookId},
+			#{chapter},
+			#{originalprice},
+			#{discount},
+			#{payCoin},
+			#{payTicket},
+			#{bulkbuychapterHistoryId},
+			#{fodderId},
+			#{payOrigin},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE user_buyChapter_history SET 	
+			book_id = #{bookId},
+			chapter = #{chapter},
+			originalprice = #{originalprice},
+			discount = #{discount},
+			pay_coin = #{payCoin},
+			pay_ticket = #{payTicket},
+			bulkbuychapter_history_id = #{bulkbuychapterHistoryId},
+			fodder_id = #{fodderId},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM user_buyChapter_history
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE user_buyChapter_history SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="UserBuychapterHistory" statementType="STATEMENT">
+		select * FROM user_buyChapter_history  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>

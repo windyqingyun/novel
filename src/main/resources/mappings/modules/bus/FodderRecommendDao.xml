@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.FodderRecommendDao">
+    
+	<sql id="fodderRecommendColumns">
+		a.id AS "id",
+		a.fodder_id AS "fodder.id",
+		a.title as "fodder.title",
+		f.title_image AS "fodder.titleImage",
+		a.invalid_date as "invalidDate",
+		a.group_num as "groupNum",
+		f.chapter AS "fodder.chapter",
+		f.viewcount as "fodder.viewcount",
+		f.create_date as "fodder.createDate",
+		a.book_id AS "book.id",
+		b.name as "book.name",
+		a.office_id AS "office.id",
+		a.to_office_id AS "toOffice.id",
+		a.fodder_ctr AS "fodderCtr",
+		a.fodder_create_date AS "fodderCreateDate",
+		a.convert_rate AS "convertRate",
+		a.create_date AS "createDate",
+		office.name AS "office.name",
+		a.show_date as "showDate"
+	</sql>
+	
+	<sql id="fodderRecommendJoins">
+		LEFT JOIN sys_office office ON office.id = a.office_id
+		left join fodder f on f.id = a.fodder_id
+		left join book b on b.id = a.book_id
+	</sql>
+	
+	<select id="getMaxGroupNum" resultType="java.lang.Integer" >
+		select max(group_num) from fodder_recommend_copy
+	</select>
+    
+	<select id="get" resultType="FodderRecommend" >
+		SELECT 
+			<include refid="fodderRecommendColumns"/>
+		FROM fodder_recommend_copy a
+		<include refid="fodderRecommendJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="FodderRecommend" >
+		SELECT 
+			<include refid="fodderRecommendColumns"/>
+		FROM fodder_recommend_copy a
+		<include refid="fodderRecommendJoins"/>
+		<where>
+			<if test="maxInvalidDate != null">
+				<![CDATA[ a.invalid_date > #{maxInvalidDate}]]>
+			</if>
+			<if test="office != null and office.id != null">
+				and a.office_id = #{office.id}
+			</if>
+			<if test="notInId != null and notInId != ''">
+				and b.id != #{notInId}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				order by a.sort
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="FodderRecommend" >
+		SELECT 
+			<include refid="fodderRecommendColumns"/>
+		FROM fodder_recommend_copy a
+		<include refid="fodderRecommendJoins"/>
+		<where>
+			
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO fodder_recommend_copy(
+			id,
+			fodder_id,
+			book_id,
+			office_id,
+			to_office_id,
+			fodder_ctr,
+			fodder_create_date,
+			convert_rate,
+			create_date,
+			invalid_date,
+			group_num,
+			show_date
+		) VALUES (
+			#{id},
+			#{fodder.id},
+			#{book.id},
+			#{office.id},
+			#{toOffice.id},
+			#{fodderCtr},
+			#{fodderCreateDate},
+			#{convertRate},
+			#{createDate},
+			#{invalidDate},
+			#{groupNum},
+			#{showDate}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE fodder_recommend_copy SET 	
+			fodder_id = #{fodder.id},
+			book_id = #{book.id},
+			office_id = #{office.id},
+			to_office_id = #{toOffice.id},
+			fodder_ctr = #{fodderCtr},
+			fodder_create_date = #{fodderCreateDate},
+			convert_rate = #{convertRate},
+			show_date = #{showDate}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!--物理删除-->
+	<update id="delete">
+		DELETE FROM fodder_recommend_copy
+		WHERE id = #{id}
+	</update>
+	
+	<!--逻辑删除-->
+	<update id="deleteByLogic">
+		UPDATE fodder_recommend_copy SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	
+	<!-- 根据实体名称和字段名称和字段值获取唯一记录 -->
+	<select id="findUniqueByProperty" resultType="FodderRecommend" statementType="STATEMENT">
+		select * FROM fodder_recommend_copy  where ${propertyName} = '${value}'
+	</select>
+	
+</mapper>
