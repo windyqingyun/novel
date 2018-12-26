@@ -21,6 +21,7 @@
 		a.update_date AS "updateDate",
 		a.remarks AS "remarks",
 		a.del_flag AS "delFlag",
+		a.genre_id AS "genreId",
 		office.`name` AS "office.name"
 	</sql>
 	
@@ -270,35 +271,7 @@
 		</choose>
 	</select>
 	
-	<!-- 人气: 根据点击量查询人气榜 (最近三天每本书点击量)  -->
-	<select id="findPageByPopularity" resultType="Book" parameterType="Book">
-		SELECT 
-			<include refid="bookColumns"/>
-		FROM book a
-		<include refid="bookJoins"/>
-		LEFT JOIN
-			(select click_resource, count(1) as "click_count"
-			from
-				(select l.click_resource from user_click_log l 
-				where create_time >= DATE_SUB(CURDATE(),INTERVAL + 3 DAY)
-				) t
-			GROUP BY click_resource
-			) tt on a.id = tt.click_resource
-		<where>
-			a.del_flag = #{DEL_FLAG_NORMAL}
-			<if test="condition != null">
-				AND a.condition = #{condition}
-			</if>
-		</where>
-		<choose>
-			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
-				ORDER BY ${page.orderBy}
-			</when>
-			<otherwise>
-				ORDER BY click_count DESC
-			</otherwise>
-		</choose>
-	</select>
+
 	
 	<!-- 畅销(已过时): 根据售卖记录排行查询书籍  (最近三天每本书有多少人买)-->
 	<select id="findPageByHotsell_bak" resultType="Book" parameterType="Book">
@@ -348,7 +321,7 @@
 		ORDER BY pay_coin_sum DESC
 	</select>
 	
-	<!-- 新书: 新书排行 距离现在90天的书  -->
+	<!-- 新书: 新书排行 距离现在30天的书  -->
 	<select id="findPageByNewbook" resultType="Book" parameterType="Book">
 		SELECT 
 			<include refid="bookColumns"/>
@@ -359,7 +332,7 @@
 			<if test="condition != null">
 				AND a.condition = #{condition}
 			</if>
-			AND DATEDIFF(now(), a.create_date) <![CDATA[ < ]]> 91
+			AND DATEDIFF(now(), a.create_date) <![CDATA[ < ]]> 31
 		</where>
 		<choose>
 			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
@@ -372,10 +345,183 @@
 	</select>
 
 	
+
+	<update id="updateCustomviewcount">
+		UPDATE book SET 	
+			customviewcount = #{customviewcount} 
+		WHERE id = #{id}
+	</update>
+
+
+	<!--！！！！！！！！！！！！！！！！！！！-->
+
+	<!-- 人气: 根据点击量查询人气榜 (最近三天每本书点击量)  -->
+	<select id="findPageByPopularity" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		LEFT JOIN
+		(select click_resource, count(1) as "click_count"
+		from
+		(select l.click_resource from user_click_log l
+		where create_time >= DATE_SUB(CURDATE(),INTERVAL + 3 DAY)
+		) t
+		GROUP BY click_resource
+		) tt on a.id = tt.click_resource
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY click_count DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	<!--收藏榜-->
+	<select id="findCollection" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM
+		book a
+		<include refid="bookJoins"/>
+		LEFT JOIN (
+		select u.book_id,count(1) AS sort from user_bookshelf u
+		where u.del_flag = 0
+		group by u.book_id
+		) t on t.book_id = a.id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY t.sort DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	<!--新书榜-->
+	<select id="findNewBook" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM
+		book a
+		<include refid="bookJoins"/>
+		LEFT JOIN (
+		SELECT
+			click_resource,count(1) AS "click_count"
+		FROM
+		(
+			SELECT
+				l.click_resource
+			FROM
+				book a
+			INNER JOIN user_click_log l ON l.click_resource = a.id
+			WHERE
+				create_date >= DATE_SUB(CURDATE(), INTERVAL + 30 DAY)
+			AND create_time >= DATE_SUB(CURDATE(), INTERVAL + 30 DAY)
+		) t
+		GROUP BY
+			click_resource
+		) tt ON a.id = tt.click_resource
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY click_count DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	<!--一周内上升最快-->
+	<select id="findSoaring" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		LEFT JOIN
+		(select click_resource, count(1) as "click_count"
+		from
+		(select l.click_resource from user_click_log l
+		where create_time >= DATE_SUB(CURDATE(),INTERVAL + 7 DAY)
+		) t
+		GROUP BY click_resource
+		) tt on a.id = tt.click_resource
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY click_count DESC
+			</otherwise>
+		</choose>
+	</select>
+<!--精品推荐-->
+	<select id="findFine" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		LEFT JOIN
+		(
+		select book_id from t_fine where is_delete = 0 ORDER BY sort
+		) t on t.book_id = a.id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+	</select>
+	<!--模糊查询书名-->
+	<select id="findLikeBook" resultType="Book" >
+		SELECT
+		a.id,a.name
+		FROM book a
+		<include refid="bookJoins"/>
+		WHERE
+		a.name like #{bookName}
+	</select>
+	<select id="findLikeBookColumns" resultType="Book" >
+		SELECT
+		<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		WHERE
+		a.name like #{bookName}
+	</select>
+
+
 	<!-- 猜你喜欢推荐书籍 AND b.office_id != '100000002009' -->
 	<select id="recommend" resultType="Book" parameterType="Book">
-		SELECT b.id, b.name, b.title, b.image 
-		FROM `book` b, `user_bulkbuychapter_history` h 		
+		SELECT b.id, b.name, b.title, b.image
+		FROM `book` b, `user_bulkbuychapter_history` h
 		<where>
 			b.id = h.book_id
 			AND b.del_flag = #{DEL_FLAG_NORMAL}
@@ -384,12 +530,30 @@
 			</if>
 		</where>
 	</select>
-	
-	
-	<update id="updateCustomviewcount">
-		UPDATE book SET 	
-			customviewcount = #{customviewcount} 
-		WHERE id = #{id}
-	</update>
-	
+
+	<!--热搜榜-->
+	<select id="findHotSearch" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM
+			book a
+				<include refid="bookJoins"/>
+		LEFT JOIN (
+			SELECT
+				book_id
+			FROM
+				search_log
+			GROUP BY
+				book_id
+			ORDER BY
+				SUM(search_count) DESC
+		) l ON a.id = l.book_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+	</select>
+
 </mapper>

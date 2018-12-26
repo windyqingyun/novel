@@ -40,6 +40,7 @@ public class Book extends DataEntity<Book> {
 	private Date publishDate;		// publish_date
 	private Integer viewcount; // 浏览次数
 	private Integer customviewcount; //gyf浏览次数
+	private String genreId;//分类id
 	
 	private List<BookChapter> chapterList;   //章节列表
 	
@@ -49,6 +50,15 @@ public class Book extends DataEntity<Book> {
 
 	public Book(String id){
 		super(id);
+	}
+
+
+	public String getGenreId() {
+		return genreId;
+	}
+
+	public void setGenreId(String genreId) {
+		this.genreId = genreId;
 	}
 
 	/**

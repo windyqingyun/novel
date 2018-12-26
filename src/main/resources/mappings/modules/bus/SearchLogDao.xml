@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jeeplus.modules.bus.dao.SearchLogDao">
+
+    <resultMap id="BaseResultMap" type="com.jeeplus.modules.bus.entity.SearchLog">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="book_id" jdbcType="VARCHAR" property="bookId" />
+        <result column="is_delete" jdbcType="INTEGER" property="isDelete" />
+        <result column="create_date" jdbcType="TIMESTAMP" property="createDate" />
+        <result column="is_exis" jdbcType="INTEGER" property="isExis" />
+        <result column="search_count" jdbcType="INTEGER" property="searchCount" />
+        <result column="search_name" jdbcType="VARCHAR" property="searchName" />
+        <result column="book_name" jdbcType="VARCHAR" property="bookName" />
+    </resultMap>
+
+    <update id="updateByKey" parameterType="com.jeeplus.modules.bus.entity.SearchLog">
+        update search_log
+        <set>
+            <if test="bookId != null">
+                book_id = #{bookId,jdbcType=VARCHAR},
+            </if>
+            <if test="isDelete != null">
+                is_delete = #{isDelete,jdbcType=INTEGER},
+            </if>
+            <if test="createDate != null">
+                create_date = #{createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="isExis != null">
+                is_exis = #{isExis,jdbcType=INTEGER},
+            </if>
+            <if test="searchCount != null">
+                search_count = #{searchCount,jdbcType=INTEGER},
+            </if>
+            <if test="searchName != null">
+                search_name = #{searchName,jdbcType=VARCHAR},
+            </if>
+            <if test="bookName != null">
+                book_name = #{bookName,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <insert id="insert" parameterType="com.jeeplus.modules.bus.entity.SearchLog">
+        insert into search_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="bookId != null">
+                book_id,
+            </if>
+            <if test="isDelete != null">
+                is_delete,
+            </if>
+            <if test="createDate != null">
+                create_date,
+            </if>
+            <if test="isExis != null">
+                is_exis,
+            </if>
+            <if test="searchCount != null">
+                search_count,
+            </if>
+            <if test="searchName != null">
+                search_name,
+            </if>
+            <if test="bookName != null">
+                book_name,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="bookId != null">
+                #{bookId,jdbcType=VARCHAR},
+            </if>
+            <if test="isDelete != null">
+                #{isDelete,jdbcType=INTEGER},
+            </if>
+            <if test="createDate != null">
+                #{createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="isExis != null">
+                #{isExis,jdbcType=INTEGER},
+            </if>
+            <if test="searchCount != null">
+                #{searchCount,jdbcType=INTEGER},
+            </if>
+            <if test="searchName != null">
+                #{searchName,jdbcType=VARCHAR},
+            </if>
+            <if test="bookName != null">
+                #{bookName,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <sql id="Base_Column_List">
+        id, book_id, is_delete, create_date, is_exis, search_count, search_name, book_name
+    </sql>
+
+    <select id="findList" parameterType="com.jeeplus.modules.bus.entity.SearchLog" resultMap="BaseResultMap">
+      select
+        <include refid="Base_Column_List" />
+      from search_log
+        <where>
+            <if test="id != null">
+                id = #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="bookId != null">
+                AND book_id = #{bookId,jdbcType=VARCHAR},
+            </if>
+            <if test="isDelete != null">
+                AND is_delete = #{isDelete,jdbcType=INTEGER},
+            </if>
+            <if test="createDate != null">
+                AND create_date = #{createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="isExis != null">
+                AND is_exis = #{isExis,jdbcType=INTEGER},
+            </if>
+            <if test="searchCount != null">
+                AND search_count = #{searchCount,jdbcType=INTEGER},
+            </if>
+            <if test="searchName != null">
+                AND search_name = #{searchName,jdbcType=VARCHAR},
+            </if>
+            <if test="bookName != null">
+                AND book_name = #{bookName,jdbcType=VARCHAR},
+            </if>
+        </where>
+    </select>
+
+    <insert id="isExisLog" parameterType="com.jeeplus.modules.bus.entity.SearchLog">
+        INSERT IGNORE INTO search_log (
+        id,
+        search_name,
+        search_count,
+        book_id,
+        is_exis,
+        book_name,
+        create_date
+        )
+        VALUES
+            (#{id}, #{searchName}, 1,#{bookId},#{isExis},#{bookName},#{createDate}) ON DUPLICATE KEY UPDATE search_count = search_count +
+        VALUES
+            (search_count);
+    </insert>
+</mapper>

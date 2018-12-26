@@ -85,10 +85,10 @@ public class BookShelfController {
 	
 
 	/**
-	 * 我的书架
+	 * 我的书架  //TODO
 	 * @return
 	 */
-	@RequestMapping("/person")
+	@RequestMapping(value = "/person",method = RequestMethod.GET)
 	public ServerResponse personBookshelf(@RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
 			@RequestParam(value = "pageSize", defaultValue = "6") Integer pageSize,
 			@CookieValue(name=Constants.Cookie.CSESSIONID, required = false) String token,

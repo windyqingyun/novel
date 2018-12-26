@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.libertad.demo.userold.dao.BookUserMapper">
+  <resultMap id="BaseResultMap" type="com.jeeplus.modules.bus.entity.BookUser">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="login" jdbcType="INTEGER" property="login" />
+    <result column="unionid" jdbcType="VARCHAR" property="unionid" />
+    <result column="img_url" jdbcType="VARCHAR" property="imgUrl" />
+    <result column="nickname" jdbcType="VARCHAR" property="nickname" />
+    <result column="sex" jdbcType="INTEGER" property="sex" />
+    <result column="access_token" jdbcType="VARCHAR" property="accessToken" />
+    <result column="openid" jdbcType="VARCHAR" property="openid" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, login, unionid, img_url, nickname, sex, access_token, openid
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from book_user
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from book_user
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+  <select id="findUserByUnionid" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from book_user
+    where unionid = #{unionid,jdbcType=VARCHAR}
+  </select>
+
+  <insert id="insert" parameterType="com.jeeplus.modules.bus.entity.BookUser">
+    insert into book_user
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="login != null">
+        login,
+      </if>
+      <if test="unionid != null">
+        unionid,
+      </if>
+      <if test="imgUrl != null">
+        img_url,
+      </if>
+      <if test="nickname != null">
+        nickname,
+      </if>
+      <if test="sex != null">
+        sex,
+      </if>
+      <if test="accessToken != null">
+        access_token,
+      </if>
+      <if test="openid != null">
+        openid,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="login != null">
+        #{login,jdbcType=INTEGER},
+      </if>
+      <if test="unionid != null">
+        #{unionid,jdbcType=VARCHAR},
+      </if>
+      <if test="imgUrl != null">
+        #{imgUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="nickname != null">
+        #{nickname,jdbcType=VARCHAR},
+      </if>
+      <if test="sex != null">
+        #{sex,jdbcType=INTEGER},
+      </if>
+      <if test="accessToken != null">
+        #{accessToken,jdbcType=VARCHAR},
+      </if>
+      <if test="openid != null">
+        #{openid,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="update" parameterType="com.jeeplus.modules.bus.entity.BookUser">
+    update book_user
+    <set>
+      <if test="login != null">
+        login = #{login,jdbcType=INTEGER},
+      </if>
+      <if test="unionid != null">
+        unionid = #{unionid,jdbcType=VARCHAR},
+      </if>
+      <if test="imgUrl != null">
+        img_url = #{imgUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="nickname != null">
+        nickname = #{nickname,jdbcType=VARCHAR},
+      </if>
+      <if test="sex != null">
+        sex = #{sex,jdbcType=INTEGER},
+      </if>
+      <if test="accessToken != null">
+        access_token = #{accessToken,jdbcType=VARCHAR},
+      </if>
+      <if test="openid != null">
+        openid = #{openid,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+</mapper>

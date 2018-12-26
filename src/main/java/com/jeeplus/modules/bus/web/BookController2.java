@@ -1,17 +1,19 @@
 package com.jeeplus.modules.bus.web;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.alibaba.fastjson.JSONObject;
+import com.jeeplus.modules.bus.entity.Feedback;
+import com.jeeplus.modules.bus.service.FeedbackService;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpRequest;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.jeeplus.common.config.Global;
 import com.jeeplus.common.log.ActionConstants;
@@ -30,6 +32,7 @@ import com.jeeplus.modules.bus.service.BookChapterService;
 import com.jeeplus.modules.bus.service.BookService;
 import com.jeeplus.modules.bus.service.CarouselService;
 import com.jeeplus.modules.bus.vo.BookVo;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * 
@@ -50,7 +53,8 @@ public class BookController2 extends BaseController {
 	private BookChapterService bookChapterService;
 	@Autowired
 	private CarouselService carouselService;
-	
+	@Autowired
+	private FeedbackService feedbackService;
  
 
 	/**
@@ -83,31 +87,43 @@ public class BookController2 extends BaseController {
 		page.setCycle(false);
 		
 		
-		String key = JedisUtils.BOOK_PREFIX + condition + ":" + category + ":" + pageNo + pageSize;
+		/*String key = JedisUtils.BOOK_PREFIX + condition + ":" + category + ":" + pageNo + pageSize;
 		ServerResponse<List<Book>> serverResponse = null;
 		serverResponse = findPerPageFromCache(key);
 		if (serverResponse != null) {
 			return serverResponse;
-		}
-		
-		//精品推荐
+		}*/
+
+		//精品推荐(手动推荐)
 		if (BookCategoryEnum.FINE.getDesc().equals(category)) {
-				// 按照精品条件筛选(一周内充值排行)
-				page = bookService.findPageByFine(page, book);
+			page = bookService.findFine(page,book);
 		}
-		// 人气榜 书籍列表	(根据点击数)
+		// 人气榜 (点击排名最多)(最近三天的点击量)
 		else if(BookCategoryEnum.POPULARITY.getDesc().equals(category)) {
-				page = bookService.findPageByPopularity(page, book);
+			page = bookService.findPageByPopularity(page,book);
 		}
-		// 畅销榜 书籍列表 (根据每本书购买的人数)
-		else if(BookCategoryEnum.HOT_SELL.getDesc().equals(category)) {
-				page = bookService.findPageByHotsell(page, book);
+		// 热搜榜 搜索量最多
+		else if(BookCategoryEnum.HOT_SEARCH.getDesc().equals(category)) {
+			page = bookService.findHotSearch(page,book);
 		}
-		//新书专区 书籍列表 (根据上传时间距离当前日期小于30天)
+		//新书榜 (从新书首发日期算起，30天内点击最多)
 		else if(BookCategoryEnum.NEW_BOOK.getDesc().equals(category)) {
-				page = bookService.findPageByNewbook(page, book);
+			page = bookService.findNewBook(page,book);
+		}
+		//飙升榜 (一周内点击量上升最快)
+		else if(BookCategoryEnum.SOARING.getDesc().equals(category)){
+			page = bookService.findSoaring(page,book);
+		}
+		//收藏榜 (加入书架最多)
+		else if(BookCategoryEnum.COLLECTION.getDesc().equals(category)){
+			page = bookService.findCollection(page,book);
+		}
+		//最新入库 (从内容提供商那里获取数据，时间最新的排最前)
+		else if(BookCategoryEnum.LATEST_BOOK.getDesc().equals(category)){
+			//TODO 带考究
 		}
 		else {
+			//没有分类的查询
 			return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
 		}
 		return ServerResponse.createBySuccess(page.getList());
@@ -159,7 +175,7 @@ public class BookController2 extends BaseController {
 
 	
 	/**
-	 * 猜你喜欢
+	 * 猜你喜欢 TODO
 	 * @return
 	 */
 	@RequestMapping("/recommend")
@@ -204,8 +220,74 @@ public class BookController2 extends BaseController {
 	public void clickCount(@PathVariable(value = "bookId") String bookId) {
 //		logger.info("book.viewcont : ", bookId);
 	}
-	
 
+	/**
+	 * 搜索提示
+	 * 设计：用户进行模糊搜索给出输入关键字的模糊查询全词
+	 * 		如：面包->菠萝面包，草莓面包
+	 * 		用户搜索根据提示词汇查询数据，获得程序关键数据
+	 * 		用户手动输入词汇，查询数据存在或不存在，并且数据在不存在或多匹配为较多情况
+	 * @param bookName
+	 * @return
+	 */
+	@RequestMapping(value = "/findBook", method = RequestMethod.GET)
+	public ServerResponse<List<Book>> findBook(HttpServletRequest request,
+			@RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+			@RequestParam(value = "pageSize", defaultValue = "6") Integer pageSize) throws UnsupportedEncodingException {
+		String bookName = new String((request.getParameter("bookName")).getBytes("iso-8859-1"),"utf-8");
+		if(StringUtils.isBlank(bookName))
+			return ServerResponse.createByError(ResponseCode.ILLEGAL_ORIGIN.getCode(), ResponseCode.ILLEGAL_ORIGIN.getDesc());
+		Page<Book> page = new Page<Book>();
+		page.setPageNo(pageNo);
+		page.setPageSize(pageSize);
+		page.setCycle(false);
+		Book book = new Book();
+		book.setName(bookName);
+		System.err.println(bookName);
+		//模糊查询书名（不需要男频女频）
+		page = bookService.findLikeBook(page,book);
+		return ServerResponse.createBySuccess(page.getList());
+	}
 
-	
+	/**
+	 * 搜索详细数据信息:点击搜索
+	 * @param bookName
+	 * @param pageNo
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(value = "/findBookSearch", method = RequestMethod.GET)
+	public ServerResponse<List<Book>> findBookSearch(HttpServletRequest request,
+													 @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+													 @RequestParam(value = "pageSize", defaultValue = "6") Integer pageSize) throws UnsupportedEncodingException {
+		String bookName = new String((request.getParameter("bookName")).getBytes("iso-8859-1"),"utf-8");
+		Page<Book> page = new Page<Book>();
+		page.setPageNo(pageNo);
+		page.setPageSize(pageSize);
+		page.setCycle(false);
+		Book book = new Book();
+		book.setName(bookName);
+		page = bookService.findLikeBookSearch(page, book);
+		return ServerResponse.createBySuccess(page.getList());
+	}
+
+	/**
+	 * 意见反馈
+	 * @return
+	 */
+	@RequestMapping(value = "/addFeedback", method = RequestMethod.POST)
+	public ServerResponse<?> addFeedback(@RequestBody Feedback feedback){
+		feedbackService.insert(feedback);
+		return ServerResponse.createBySuccess();
+	}
+
+	/**
+	 * 微信登录
+	 * @param code
+	 * @return
+	 */
+	public ServerResponse<?> login(@RequestParam("code") String code){
+		//登录微信，成功后返回用户token,调用用户相关接口解析token
+
+	}
 }

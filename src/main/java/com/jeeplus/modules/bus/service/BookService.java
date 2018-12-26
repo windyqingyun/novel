@@ -3,11 +3,15 @@
  */
 package com.jeeplus.modules.bus.service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.jeeplus.modules.bus.dao.SearchLogDao;
+import com.jeeplus.modules.bus.entity.SearchLog;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,6 +38,8 @@ import com.jeeplus.modules.bus.vo.BookChapterVo;
 import com.jeeplus.modules.bus.vo.BookVo;
 import com.jeeplus.modules.sys.entity.Office;
 
+import static jdk.nashorn.internal.runtime.regexp.joni.Config.log;
+
 /**
  * 书籍Service
  * @author zhangsc
@@ -47,6 +53,8 @@ public class BookService extends CrudService<BookDao, Book> {
 	private BookChapterService bookChapterService;
 	@Autowired
 	private LaikanChapterHisService laikanChapterHisService;
+	@Autowired
+	private SearchLogDao searchLogDao;
 	
 	public Book get(String id) {
 		return super.get(id);
@@ -178,17 +186,7 @@ public class BookService extends CrudService<BookDao, Book> {
 	}
 	
 	
-	/**
-	 * 根据 点击量 查询人气榜
-	 * @param page
-	 * @param book
-	 * @return
-	 */
-	public Page<Book> findPageByPopularity(Page<Book> page, Book book) {
-		book.setPage(page);
-		page.setList(dao.findPageByPopularity(book));
-		return page;
-	}
+
 	
 	
 	/**
@@ -278,5 +276,112 @@ public class BookService extends CrudService<BookDao, Book> {
 	public int updateCustomviewcount(Book book) {
 		return dao.updateCustomviewcount(book);
 	}
-	
+
+	//--------------
+	/**
+	 * 根据 点击量 查询人气榜
+	 * @param page
+	 * @param book
+	 * @return
+	 */
+	public Page<Book> findPageByPopularity(Page<Book> page, Book book) {
+		book.setPage(page);
+		page.setList(dao.findPageByPopularity(book));
+		return page;
+	}
+
+	/**
+	 * 收藏榜
+	 * @return
+	 */
+	public Page<Book> findCollection(Page<Book> page, Book book){
+		book.setPage(page);
+		page.setList(dao.findCollection(book));
+		return page;
+	}
+
+	/**
+	 * 新书榜
+	 * @param page
+	 * @param book
+	 * @return
+	 */
+	public Page<Book> findNewBook(Page<Book> page, Book book) {
+		book.setPage(page);
+		page.setList(dao.findNewBook(book));
+		return page;
+	}
+
+	/**
+	 * 一周上升最快
+	 * @param page
+	 * @param book
+	 * @return
+	 */
+	public Page<Book> findSoaring(Page<Book> page, Book book) {
+		book.setPage(page);
+		page.setList(dao.findSoaring(book));
+		return page;
+	}
+
+	/**
+	 * 精品推荐
+	 * @param page
+	 * @param book
+	 * @return
+	 */
+    public Page<Book> findFine(Page<Book> page, Book book) {
+		book.setPage(page);
+		page.setList(dao.findFine(book));
+		return page;
+    }
+
+	/**
+	 * 模糊查询
+	 * @param bookName
+	 */
+	public Page<Book> findLikeBook(Page<Book> page,Book book) {
+		book.setPage(page);
+		//查询书
+		return page.setList(dao.findLikeBook("%"+book.getName()+"%"));
+	}
+
+	/**
+	 *搜索详细数据信息
+	 * @param page
+	 * @param book
+	 * @return
+	 */
+	@Transactional(readOnly = false)
+	public Page<Book> findLikeBookSearch(Page<Book> page, Book book) {
+		book.setPage(page);
+		List<Book> likeBook = dao.findLikeBook("%"+book.getName()+"%");
+		SearchLog log = new SearchLog();
+		if(likeBook == null || likeBook.size() == 0){
+			log.setIsExis(1);
+		}else{
+			log.setIsExis(0);
+		}
+		//根据提示搜索词查询日志记录 拼写搜索词查询（取第一个字匹配几率最大）
+		log.setId(IdGen.uuid());
+		log.setSearchName(book.getName());
+		log.setBookId(likeBook.get(0).getId());
+		log.setBookName(likeBook.get(0).getName());
+		log.setSearchName(book.getName());
+		log.setCreateDate(new Date());
+		searchLogDao.isExisLog(log);
+		return page.setList(likeBook);
+	}
+
+	/**
+	 * 热搜榜
+	 * @param page
+	 * @param book
+	 * @return
+	 */
+	public Page<Book> findHotSearch(Page<Book> page, Book book) {
+		book.setPage(page);
+		page.setList(dao.findHotSearch(book));
+		return page;
+	}
 }
