@@ -37,7 +37,14 @@ public interface BookDao extends CrudDao<Book> {
 	List<Book> findPageByNewbook(Book book);
 	
 	List<Book> recommend(Book book);
-	
+
+	/**
+	 * 分页查看最新入库
+	 * @param book
+	 * @return
+	 */
+	List<Book> findPageLastBook(Book book);
+
 	int updateCustomviewcount(Book book);
 
 	/**
@@ -69,11 +76,19 @@ public interface BookDao extends CrudDao<Book> {
 	List<Book> findFine(Book book);
 
 	/**
+	 * 最新入库
+	 * @param book
+	 * @return
+	 */
+	List<Book> findLastBook(Book book);
+
+	/**
 	 * 名字模糊查询书籍
 	 * @param bookName
 	 * @return
 	 */
 	List<Book> findLikeBook(@Param("bookName") String bookName);
+
 	List<Book> findLikeBookColumns(@Param("bookName") String bookName);
 
 	/**

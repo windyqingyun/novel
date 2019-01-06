@@ -3,35 +3,26 @@
  */
 package com.jeeplus.modules.bus.web;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.jeeplus.common.cache.GuavaCache;
 import com.jeeplus.common.constant.Constants;
 import com.jeeplus.common.persistence.Page;
 import com.jeeplus.common.response.ResponseCode;
 import com.jeeplus.common.response.ServerResponse;
-import com.jeeplus.modules.bus.entity.Book;
+import com.jeeplus.common.utils.StringUtil;
 import com.jeeplus.modules.bus.entity.UserBookshelf;
 import com.jeeplus.modules.bus.service.BookService;
 import com.jeeplus.modules.bus.service.UserBookshelfService;
 import com.jeeplus.modules.bus.utils.CurrentCustomerUtil;
 import com.jeeplus.modules.bus.vo.UserBookShelfVo;
 import com.jeeplus.modules.sys.entity.User;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Description: 书架Controller
@@ -53,7 +44,6 @@ public class BookShelfController {
 	
 	/**
 	 * 加入书架
-	 * @param id
 	 * @return
 	 */
 	@RequestMapping(value = "add/{bookId}", method = RequestMethod.POST)
@@ -81,6 +71,38 @@ public class BookShelfController {
 		}
 		
 		return userBookshelfService.addBookToUserBookShelf(userBookshelf);
+	}
+
+	/**
+	 * 删除书架
+	 * @param token
+	 * @return
+	 */
+	@RequestMapping(value = "delete", method = RequestMethod.POST)
+	public ServerResponse deleteBookShelf(@RequestParam("ids[]") String[] ids,
+										  @CookieValue(name = Constants.Cookie.CSESSIONID, required = false) String token) {
+		if (ids == null || ids.length == 0)
+			return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+
+		if (StringUtils.isBlank(token))
+			return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+
+		String currentCustomerId = CurrentCustomerUtil.getCurrentCustomerId(token);
+		if (StringUtils.isBlank(currentCustomerId))
+			return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+
+		List<UserBookshelf> userBookshelfList = new ArrayList<>();
+		for (String id : ids) {
+			UserBookshelf userBookshelf = userBookshelfService.get(id);
+			if (userBookshelf != null || userBookshelf.getUser() != null) {
+				userBookshelfList.add(userBookshelf);
+			}
+			if (!userBookshelf.getUser().getId().equals(currentCustomerId))
+				return ServerResponse.createByError("不能删除别人的书架");
+		}
+
+		userBookshelfService.delete(userBookshelfList);
+		return ServerResponse.createBySuccessMessage("删除成功");
 	}
 	
 

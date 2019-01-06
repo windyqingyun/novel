@@ -62,8 +62,6 @@ public class BookController2 extends BaseController {
 	 * 
 	 * @param category 
 	 * @param condition 0：女频；1：男频
-	 * @param request
-	 * @param response
 	 * @return
 	 */
 	@RequestMapping(value = { "/list/{category}/{condition}" }, method = RequestMethod.GET)
@@ -85,14 +83,7 @@ public class BookController2 extends BaseController {
 		page.setPageNo(pageNo);
 		page.setPageSize(pageSize);
 		page.setCycle(false);
-		
-		
-		/*String key = JedisUtils.BOOK_PREFIX + condition + ":" + category + ":" + pageNo + pageSize;
-		ServerResponse<List<Book>> serverResponse = null;
-		serverResponse = findPerPageFromCache(key);
-		if (serverResponse != null) {
-			return serverResponse;
-		}*/
+
 
 		//精品推荐(手动推荐)
 		if (BookCategoryEnum.FINE.getDesc().equals(category)) {
@@ -120,7 +111,7 @@ public class BookController2 extends BaseController {
 		}
 		//最新入库 (从内容提供商那里获取数据，时间最新的排最前)
 		else if(BookCategoryEnum.LATEST_BOOK.getDesc().equals(category)){
-			//TODO 带考究
+			page = bookService.findLastBook(page, book);
 		}
 		else {
 			//没有分类的查询
@@ -154,7 +145,6 @@ public class BookController2 extends BaseController {
 
 	/**
 	 * 书籍详情
-	 * @param id
 	 * @return
 	 */
 	@RequestMapping("/detail/{bookId}")
@@ -175,13 +165,14 @@ public class BookController2 extends BaseController {
 
 	
 	/**
-	 * 猜你喜欢 TODO
+	 * 猜你喜欢
 	 * @return
 	 */
 	@RequestMapping("/recommend")
 	public ServerResponse recommend(@RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo
 			,@RequestParam(value = "pageSize", defaultValue = "4") Integer pageSize
 			,@RequestParam(value = "condition", defaultValue = "0") Integer condition
+			,@RequestParam(value = "genreId", required = false) String genreId
 			) {
 		Page page = new Page<>();
 		page.setPageNo(pageNo);
@@ -193,7 +184,8 @@ public class BookController2 extends BaseController {
 		}else {
 			return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
 		}
-		
+		book.setGenreId(genreId);
+
 		page = bookService.recommend(page, book);
 		return ServerResponse.createBySuccess(page.getList());
 	}
@@ -227,7 +219,6 @@ public class BookController2 extends BaseController {
 	 * 		如：面包->菠萝面包，草莓面包
 	 * 		用户搜索根据提示词汇查询数据，获得程序关键数据
 	 * 		用户手动输入词汇，查询数据存在或不存在，并且数据在不存在或多匹配为较多情况
-	 * @param bookName
 	 * @return
 	 */
 	@RequestMapping(value = "/findBook", method = RequestMethod.GET)
@@ -288,6 +279,6 @@ public class BookController2 extends BaseController {
 	 */
 	public ServerResponse<?> login(@RequestParam("code") String code){
 		//登录微信，成功后返回用户token,调用用户相关接口解析token
-
+		return null;
 	}
 }

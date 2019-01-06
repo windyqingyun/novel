@@ -248,7 +248,8 @@
 		ORDER BY price_sum desc, p_create_date desc 
 	</select>
 	
-	
+
+
 	<!-- 人气(已过时): 根据点击量查询人气榜  -->
 	<select id="findPageByPopularity_bak" resultType="Book" parameterType="Book">
 		SELECT 
@@ -499,6 +500,22 @@
 			</if>
 		</where>
 	</select>
+
+	<!-- 最新入库 -->
+	<select id="findLastBook" resultType="Book" parameterType="Book">
+		SELECT
+		<include refid="bookColumns"/>
+		FROM book a
+		<include refid="bookJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="condition != null">
+				AND a.condition = #{condition}
+			</if>
+		</where>
+		order by a.createDate desc
+	</select>
+
 	<!--模糊查询书名-->
 	<select id="findLikeBook" resultType="Book" >
 		SELECT
@@ -527,6 +544,9 @@
 			AND b.del_flag = #{DEL_FLAG_NORMAL}
 			<if test="condition != null">
 				AND b.condition = #{condition}
+			</if>
+			<if test="genreId != null">
+				AND a.genre_id = #{genreId}
 			</if>
 		</where>
 	</select>

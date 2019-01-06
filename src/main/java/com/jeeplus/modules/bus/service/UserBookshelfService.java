@@ -53,7 +53,14 @@ public class UserBookshelfService extends CrudService<UserBookshelfDao, UserBook
 	public void delete(UserBookshelf userBookshelf) {
 		super.delete(userBookshelf);
 	}
-	
+
+	@Transactional(readOnly = false)
+	public void delete(List<UserBookshelf> userBookshelfList) {
+		for (UserBookshelf userBookshelf : userBookshelfList) {
+			this.delete(userBookshelf);
+		}
+	}
+
 	/**
 	 * 加入书架
 	 */
@@ -71,7 +78,6 @@ public class UserBookshelfService extends CrudService<UserBookshelfDao, UserBook
 	/**
 	 * 根据书架查找书籍
 	 * @param page
-	 * @param userBookshelf
 	 * @return
 	 */
 	public Page<UserBookShelfVo> findBookPageByBookshelf(Page<UserBookShelfVo> page, UserBookShelfVo userBookShelfVo) {

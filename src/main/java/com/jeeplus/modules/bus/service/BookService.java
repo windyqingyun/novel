@@ -301,6 +301,15 @@ public class BookService extends CrudService<BookDao, Book> {
 	}
 
 	/**
+	 * 最新入库
+	 */
+	public Page<Book> findLastBook(Page<Book> page, Book book) {
+		book.setPage(page);
+		page.setList(dao.findLastBook(book));
+		return page;
+	}
+
+	/**
 	 * 新书榜
 	 * @param page
 	 * @param book
